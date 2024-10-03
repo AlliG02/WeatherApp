@@ -8,6 +8,10 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.expandVertically
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -19,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.core.util.Pair
+import androidx.core.view.WindowCompat
 import coil.compose.AsyncImage
 import com.example.weatherapp.network.ApiClient
 import com.example.weatherapp.models.WeatherResponse
@@ -39,17 +44,39 @@ class MainActivity : ComponentActivity() {
         // Initialize FusedLocationProviderClient for location services
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        // Set the status bar to black
+        window.statusBarColor = android.graphics.Color.BLACK // Set status bar color to black
         // Check for location permission when the app starts
         checkLocationPermission { location ->
             // Set up the Compose UI
             setContent {
-                WeatherAppScreen(  )
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),  // Add padding to avoid edges
+                    verticalArrangement = Arrangement.Top,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+//                    Title() come back to this next time
+                    Spacer(modifier = Modifier.height(8.dp)) // Reduced height of Spacer
+                    WeatherAppScreen()
+                }
             }
         }
     }
 
     @Composable
-    fun WeatherAppScreen(){
+    fun Title() {
+        Text(
+            text = "WeatherApp",
+            color = Color.White,  // Make the text color white
+            style = MaterialTheme.typography.headlineMedium, // Use appropriate text style
+        )
+    }
+
+    @Composable
+    fun WeatherAppScreen() {
         var showWeatherInfo by remember { mutableStateOf(false) }
         var locationState by remember { mutableStateOf("") }
         var weatherState by remember { mutableStateOf("") }
@@ -60,18 +87,21 @@ class MainActivity : ComponentActivity() {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (showWeatherInfo){
-                Row(
-                    horizontalArrangement = Arrangement.Center
-                ){
-                    WeatherIcon(iconURL)
-                    WeatherInfo(locationState, weatherState)
+            AnimatedVisibility(
+                visible = showWeatherInfo,
+                enter = expandVertically(
+                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                    expandFrom = Alignment.Top // You can also expand from bottom or center
+                )
+            ) {
+                if (showWeatherInfo) {
+                    Weather(iconURL, locationState, weatherState)
                 }
             }
+
             FetchWeatherButton {
-                // do stuff when button is pressed
-                checkLocationPermission {location ->
-                    getWeatherForLocation(location.first, location.second) {weather ->
+                checkLocationPermission { location ->
+                    getWeatherForLocation(location.first, location.second) { weather ->
                         locationState = "${weather?.name ?: "Unknown"}"
                         weatherState = "Temp: ${weather?.main?.temp ?: "--"}°C\n" +
                                 "${weather?.weather?.get(0)?.description ?: "--"}"
@@ -84,9 +114,25 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
+    fun Weather(iconURL : String, locationState : String, weatherState : String) {
+        Row(
+            horizontalArrangement = Arrangement.Center
+        ){
+            WeatherIcon(iconURL)
+            WeatherInfo(locationState, weatherState)
+        }
+    }
+
+    @Composable
     fun FetchWeatherButton(onClick: () -> Unit){
-        Button(onClick = { onClick() }){
-            Text("Fetch Weather", color = Color.White)
+        Button(
+            onClick = { onClick() },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color.Black,  // Set the background color to white
+                contentColor = Color.White     // Set the text color to black (for contrast)
+            )
+        ) {
+            Text("Fetch Weather")
         }
     }
 
@@ -160,10 +206,3 @@ class MainActivity : ComponentActivity() {
         })
     }
 }
-
-//// Preview function for UI Preview in Android Studio
-//@Preview(showBackground = true)
-//@Composable
-//fun WeatherAppPreview() {
-//    WeatherAppScreen()
-//}
