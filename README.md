@@ -1,4 +1,4 @@
-# Weather App
+# WeatherApp
 
 A Weather App that shows the weather of the current location.
 
